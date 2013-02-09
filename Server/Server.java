@@ -99,8 +99,13 @@ public class Server implements ChatListener, Runnable{
 	}
 	
 	public void logedIn(ChatProtokoll cP) {
-		sendOther(cP.getName() + "hat den Chatroom betreten", NAME, cP);
-		sL.updateUser();
+		if (! nameOk(cP.getName())) {
+			cP.disconnect();
+		}
+		else {
+			sendOther(cP.getName() + " hat den Chatroom betreten", NAME, cP);
+			sL.updateUser();
+		}
 	}
 	
 	public void recive(String msg, ChatProtokoll cP) {
@@ -125,6 +130,16 @@ public class Server implements ChatListener, Runnable{
 	
 	public void wrongPassword(ChatProtokoll cP) {
 		delete(cP);
+	}
+	
+	public boolean nameOk(String name) {
+		if (name.length() > 8)
+			return false;
+		name = name.trim();
+		if (name.length() < 1)
+			return false;
+		
+		return true;
 	}
 	
 	public void sendAll(String msg) {
