@@ -47,30 +47,40 @@ public class ChatProtokoll implements Runnable {
 		this.cL = cL;
 		randCount = 1;
 		name = "";
-		setDefaultValues();
+		setStartValues();
 	}
 	
 	public ChatProtokoll(ChatListener cL, int randCount) {
 		this.cL = cL;
 		name = "";
 		this.randCount = randCount;
-		setDefaultValues();
+		setStartValues();
 	}
 	
 	public ChatProtokoll(ChatListener cL, int randCount, String name) {
 		this.cL = cL;
 		this.randCount = randCount;
 		this.name = name;
-		setDefaultValues();
+		setStartValues();
 
 	}
 	
-	protected void setDefaultValues() {
+	protected void setStartValues() {
 		readyToChat = false;
 		connected = false;
 		tryingToConnect = false;
 		keysReady = false;
 		disabled = false;
+		keysExchanged = false;
+		otherName = "";
+		otherIP = "";
+	}
+	
+	protected void setDefaultValues(boolean disabled) {
+		readyToChat = false;
+		connected = false;
+		tryingToConnect = false;
+		this.disabled = disabled;
 		keysExchanged = false;
 		otherName = "";
 		otherIP = "";
@@ -116,9 +126,7 @@ public class ChatProtokoll implements Runnable {
 			
 		}
 		if (!readyToChat) {
-			boolean b = keysReady;
-			setDefaultValues();
-			keysReady = b;
+			setDefaultValues(false);
 		}
 	}
 	
@@ -158,9 +166,7 @@ public class ChatProtokoll implements Runnable {
 			}
 		}
 		if (!readyToChat) {
-			boolean b = keysReady;
-			setDefaultValues();
-			keysReady = b;
+			setDefaultValues(false);
 		}
 	}
 	
@@ -170,6 +176,8 @@ public class ChatProtokoll implements Runnable {
 			otherIP = (sock.getInetAddress()+"").substring(1);
 			connected = true;
 			cL.connected(this);
+			if (disabled)
+				return;
 			try {
 				keyExchange();
 				keysExchanged = true;
@@ -200,17 +208,21 @@ public class ChatProtokoll implements Runnable {
 		}
 	}
 	
-	protected void keyExchange() throws IOException{
-		keysReady = false;
+	protected void keyExchange() throws IOException {
 		out = new PrintWriter(sock.getOutputStream(), true);
 		in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+		keysReady = false;
 		out.println(prodOut);
 		out.println(expOut);
 		String s = getNextLine();
+		if (s.equals(ChatConstants.DISCONNECT))
+			disabled = true;
 		if (disabled)
 			return;
 		prodIn = new BigInteger(s);
 		s = getNextLine();
+		if (s.equals(ChatConstants.DISCONNECT))
+			disabled = true;
 		if (disabled)
 			return;
 		expIn = new BigInteger(s);
@@ -218,10 +230,12 @@ public class ChatProtokoll implements Runnable {
 	
 	protected void exchangeNames() {
 		send(name);
-		String s = getNextLine();
+		String s = dechiffrieren(getNextLine());
+		if (s.equals(ChatConstants.DISCONNECT))
+			disabled = true;
 		if (disabled)
 			return;
-		otherName = dechiffrieren(s);
+		otherName = s;
 	}
 	
 	protected boolean logIn(String pw) {
@@ -315,12 +329,13 @@ public class ChatProtokoll implements Runnable {
 	}
 	
 	public void disconnect() {
-		if (readyToChat || connected) {
+		if ((this.readyToChat || connected) && ! disabled) {
+			boolean readyToChat = this.readyToChat;
 			try {
 				send(ChatConstants.DISCONNECT);
 			}
 			catch(Exception e) {}
-			readyToChat = false;
+			this.readyToChat = false;
 			connected = false;
 			disabled = true;
 			try {
@@ -329,10 +344,13 @@ public class ChatProtokoll implements Runnable {
 				sock.close();
 			}
 			catch(Exception e) {
-				
+				try {
+					sock.close();
+				}
+				catch(Exception e1) {}
 			}
 			cL.disconnected(this);
-			setDefaultValues();
+			setDefaultValues(! readyToChat);
 		}
 	}
 	
@@ -343,6 +361,8 @@ public class ChatProtokoll implements Runnable {
 	public void send(String msg) {
 		if (keysExchanged)
 			out.println(RSA.chiffrieren(msg, prodIn, expIn, randCount));
+		else if (msg.equals(ChatConstants.DISCONNECT))
+			out.println(msg);
 	}
 	
 	public void run() {

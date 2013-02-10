@@ -133,7 +133,7 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 			//TODO: propper ip locking
 			if (serverOnline) {
 				msg = msg.substring(AdminConstants.KILL.length(), msg.length()-1);
-				server.lockIP(msg.split("|")[0]);
+				server.lockIP(msg.split(AdminConstants.TRENNZEICHEN)[0]);
 			}
 		}
 	}
@@ -174,10 +174,20 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 	public void updateUser() {
 		if (serverOnline && adminOnline) {
 			String msg = AdminConstants.UP_USER;
+			boolean foundUser = false;
 			for (ChatProtokoll cP: server.clients) {
-				msg += cP.getName() + ("|".equals(AdminConstants.TRENNZEICHEN) ? "-" : "|") + cP.getIP() + AdminConstants.TRENNZEICHEN;
+				if (! (cP.isReadyToChat() || server.nameOk(cP.getName())) ) 
+					continue;
+				msg += cP.getName() + AdminConstants.TRENNZEICHEN_2 + cP.getIP() + AdminConstants.TRENNZEICHEN;
+				foundUser = true;
 			}
-			cP.send(msg.substring(msg.length()-1)+")");
+			if (foundUser) {
+				cP.send(msg.substring(0, msg.length()-1)+")");
+			}
+			else {
+				cP.send(msg + ")");
+			}
+			
 		}
 	}
 	

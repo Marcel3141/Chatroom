@@ -53,5 +53,6 @@ public class Chat extends JFrame implements WindowListener {
 	
 	public void finalize() throws Throwable {
 		super.finalize();
+		this.dispose();
 	}
 }

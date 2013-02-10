@@ -114,11 +114,11 @@ public class Server implements ChatListener, Runnable{
 	}
 	
 	public void disconnected(ChatProtokoll cP) {
+		delete(cP);
 		if(online) {
 			sendOther(cP.getName() + "hat den Chatroom verlassen", NAME, cP);
 			sL.updateUser();
 		}
-		delete(cP);
 	}
 	
 	public void failedToConnect(Exception e, ChatProtokoll cP) {
@@ -168,9 +168,18 @@ public class Server implements ChatListener, Runnable{
 	
 	public void lockIP(String ip) {
 		lockedIP.add(ip);
-		for (ChatProtokoll cP: clients) {
-			if (cP.getIP().equals(ip))
+		if (clients.isEmpty())
+			return;
+		int i = 0;
+		while (true) {
+			if (i >= clients.size())
+				break;
+			ChatProtokoll cP = clients.get(i);
+			if (cP.getIP().equals(ip)) {
 				cP.disconnect();
+				i--;
+			}
+			i++;
 		}
 	}
 	
@@ -183,8 +192,11 @@ public class Server implements ChatListener, Runnable{
 		pT.stopThread();
 		clients.lastElement().abortConnecting();
 		clients.lastElement().disconnect();
-		for (ChatProtokoll cP: clients) {
-			cP.disconnect();
+		sendAll(NAME + ": Server is shutting down");
+		if (clients.isEmpty())
+			return;
+		while (! clients.isEmpty()) {
+			clients.firstElement().disconnect();
 		}
 		clients = null;
 		sL = null;

@@ -38,6 +38,7 @@ public class AdminConstants  {
 	
 	//Syntax
 	public static final String TRENNZEICHEN = ",";
+	public static final String TRENNZEICHEN_2 = "-";
 	public static final String ZEILENUMBRUCH = ";";
 	
 }

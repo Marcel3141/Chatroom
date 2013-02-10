@@ -109,18 +109,22 @@ public class Menue extends JFrame implements WindowListener {
 		else if (com.startsWith(AdminConstants.UP_USER)) {
 			if (!showUser)
 				return;
-			String splt = ("|".equals(AdminConstants.TRENNZEICHEN) ? "-" : "|");
 			com = com.substring(AdminConstants.UP_USER.length(), com.length()-1);
-			String[] param = com.split(AdminConstants.TRENNZEICHEN);
-			String[][] info = new String[2][param.length];
-			int i = 0;
-			for (String s: param) {
-				String[] val = s.split(splt);
-				info[0][i] = val[0];
-				info[1][i] = val[1];
-				i++;
+			if (com.length() > 0) {
+				String[] param = com.split(AdminConstants.TRENNZEICHEN);
+				String[][] info = new String[2][param.length];
+				int i = 0;
+				for (String s: param) {
+					String[] val = s.split(AdminConstants.TRENNZEICHEN_2);
+					info[0][i] = val[0];
+					info[1][i] = val[1];
+					i++;
+				}
+				userPanel.updateInformation(info[0], info[1]);
 			}
-			userPanel.updateInformation(info[0], info[1]);
+			else {
+				userPanel.updateInformation(null, null);
+			}
 		}
 	}
 	
@@ -137,6 +141,7 @@ public class Menue extends JFrame implements WindowListener {
 	public void finalize() throws Throwable {
 		con.save();
 		super.finalize();
+		this.dispose();
 	}
 	
 }

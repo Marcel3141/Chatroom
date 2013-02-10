@@ -222,6 +222,10 @@ public class LogIn extends JFrame implements ActionListener, WindowListener, Cha
 		JB_ok.setActionCommand("ok");
 		JRB_ActionListener.actionPerformed(null);
 		JL_Meldung.setText("Verbindung wurde beendet");
+		try {
+			chat.finalize();
+		}
+		catch(Throwable e) {}
 		chat = null;
 		this.setVisible(true);
 	}

@@ -71,7 +71,8 @@ public class UserPanel extends JPanel implements ActionListener {
 			tmp3.setLayout(new BoxLayout(tmp3, BoxLayout.X_AXIS));
 			tmp3.add(Box.createRigidArea(new Dimension(1,hight)));
 			JButton JB = new JButton("Kill User");
-			JB.setActionCommand(ipArray[i] + "|" + nArray[i]);
+			JB.setActionCommand(ipArray[i] + AdminConstants.TRENNZEICHEN + nArray[i]);
+			JB.addActionListener(this);
 			tmp3.add(JB);
 			tmp3.add(Box.createRigidArea(new Dimension(1,hight)));
 			
@@ -92,7 +93,11 @@ public class UserPanel extends JPanel implements ActionListener {
 	}
 	
 	public void updateInformation(String[] names, String[] ips) {
-		Component cmp = createTable(names, ips);
+		Component cmp;
+		if(names == null || ips == null || names.length == 0 || ips.length == 0)
+			cmp = new JLabel("No Users Online");
+		else 
+			cmp = createTable(names, ips);
 		this.remove(0);
 		this.add(cmp);
 		menue.doUpdate();
