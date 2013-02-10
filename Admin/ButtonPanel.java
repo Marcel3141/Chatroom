@@ -139,7 +139,6 @@ public class ButtonPanel extends JPanel implements ActionListener, ChatListener 
 	public void connected(ChatProtokoll cP) {}
 	
 	public void logedIn(ChatProtokoll cP) {
-		System.out.println("logged in");
 		menue.chatPanel.setConnected(true);
 		menue.chatPanel.setEnabled(true);
 	}
@@ -154,7 +153,6 @@ public class ButtonPanel extends JPanel implements ActionListener, ChatListener 
 	}
 	
 	public void failedToConnect(Exception e, ChatProtokoll cP) {
-		e.printStackTrace();
 		checkKeyGeneration();
 	}
 	

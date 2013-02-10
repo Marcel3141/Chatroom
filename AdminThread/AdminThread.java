@@ -84,7 +84,6 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 	}
 	
 	public void failedToConnect(Exception e, ChatProtokoll cP) {
-		e.printStackTrace();
 		if (online)
 			startChatProtokoll();
 	}

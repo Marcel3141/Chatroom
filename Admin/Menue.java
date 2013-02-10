@@ -92,7 +92,6 @@ public class Menue extends JFrame implements WindowListener {
 	}
 	
 	public void command(String com) {
-		System.out.println(com);
 		if (com.startsWith(AdminConstants.TEST)) {
 			cP.send(AdminConstants.RESPONSE);
 		}

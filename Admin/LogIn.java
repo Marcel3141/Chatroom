@@ -179,7 +179,6 @@ public class LogIn extends JFrame implements ActionListener, WindowListener, Cha
 		checkKeyGeneration();
 		JL_Meldung.setText("Fehler beim Verbindungsaufbau");
 		this.setVisible(true);
-		e.printStackTrace();
 	}
 	
 	public void wrongPassword(ChatProtokoll cP) {

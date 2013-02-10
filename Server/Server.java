@@ -69,7 +69,6 @@ public class Server implements ChatListener, Runnable{
 	
 	protected void startChatProtokoll() {
 		if (online) {
-			System.out.println("startChatProtokoll");
 			BigInteger[] key = getKeys();
 			ChatProtokoll cP = new ChatProtokoll(this, RAND_COUNT, NAME);
 			cP.setKeys(key[0], key[1], key[2]);
@@ -109,7 +108,6 @@ public class Server implements ChatListener, Runnable{
 	}
 	
 	public void recive(String msg, ChatProtokoll cP) {
-		System.out.println("got: " + msg);
 		sendOther(msg, cP);
 	}
 	
@@ -124,7 +122,6 @@ public class Server implements ChatListener, Runnable{
 	public void failedToConnect(Exception e, ChatProtokoll cP) {
 		if (online && cP.isConnected())
 			new Thread(this).start();
-		e.printStackTrace();
 		sL.handleError(e);
 	}
 	
@@ -144,7 +141,7 @@ public class Server implements ChatListener, Runnable{
 	
 	public void sendAll(String msg) {
 		for(ChatProtokoll cP: clients)
-				cP.send(msg);
+			cP.send(msg);
 	}
 	
 	public void sendOther(String msg, ChatProtokoll notThis) {
