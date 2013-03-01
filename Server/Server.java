@@ -35,7 +35,7 @@ public class Server implements ChatListener, Runnable{
 		this.LOG_IN_PW = PASSWORT;
 		this.sL = sL;
 		NAME = "Server";
-		con = new JAR_Configuration("Server.ini", "=", "ConfigurationFiles");
+		con = new JAR_Configuration("Server.ini", "=");
 		RAND_COUNT = con.getInt("RAND_COUNT", 3, 100);
 		CHECK_TIME = con.getInt("CHECK_TIME", 100, 300000, 5000);
 		startServer();
@@ -46,7 +46,7 @@ public class Server implements ChatListener, Runnable{
 		this.LOG_IN_PW = PASSWORT;
 		this.sL = sL;
 		this.NAME = name;
-		con = new JAR_Configuration("Server.ini", "=", "ConfigurationFiles");
+		con = new JAR_Configuration("Server.ini", "=");
 		RAND_COUNT = con.getInt("RAND_COUNT", 3, 100);
 		CHECK_TIME = con.getInt("CHECK_TIME", 100, 300000, 5000);
 		startServer();
@@ -65,6 +65,7 @@ public class Server implements ChatListener, Runnable{
 		clients = new Vector<ChatProtokoll>();
 		
 		new Thread(this).start();
+		System.out.println("Server started");
 	}
 	
 	protected void startChatProtokoll() {
@@ -184,16 +185,37 @@ public class Server implements ChatListener, Runnable{
 		startChatProtokoll();
 	}
 	
-	public void shutdown() {
+	public void goOffline() {
 		online = false;
 		pT.stopThread();
-		clients.lastElement().abortConnecting();
-		clients.lastElement().disconnect();
+		ChatProtokoll cP = clients.lastElement();
+		cP.abortConnecting();
+		cP.disconnect();
+		while (! cP.isSocketFree()) {
+			try {
+				Thread.sleep(1000);
+			}
+			catch (InterruptedException e) {}
+		}
+	}
+	
+	public void shutdown() {
+		shutdown("");
+	}
+	
+	public void shutdown(String msg) {
+		if (online) {
+			goOffline();
+		}
+		if (! msg.equals(""))
+			sendAll(NAME + ": " + msg);
 		sendAll(NAME + ": Server is shutting down");
 		if (clients.isEmpty())
 			return;
 		while (! clients.isEmpty()) {
-			clients.firstElement().disconnect();
+			ChatProtokoll cP = clients.firstElement();
+			cP.disconnect();
+			delete(cP);
 		}
 		clients = null;
 		sL = null;

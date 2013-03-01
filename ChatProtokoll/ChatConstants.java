@@ -6,6 +6,8 @@ public class ChatConstants  {
 	public static final String DISCONNECT = "DISCONNECT()";
 	public static final String CONNECTED = "LOGIN_ACCEPTED";
 	
+	public static final String SERVERUPDATE = "SERVERUPDATE";
+	
 	//Fehlermeldungen
 	public static final String ERROR = "ERROR: ";
 	public static final String E_UNKNOWN_COMMAND = "WTF???";
@@ -13,6 +15,6 @@ public class ChatConstants  {
 	
 	//Syntax
 	public static final String SLASH = "<slash>";
-	public static final String TRENNZEICHEN = "/,";
+	public static final String TRENNZEICHEN = "/,"; 
 	
 }

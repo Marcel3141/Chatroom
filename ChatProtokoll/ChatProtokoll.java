@@ -13,7 +13,6 @@ import Verschluesselung.RSA;
 
 /**
  * @author Marcel Kramer
- * @serial 0.1
  */
 public class ChatProtokoll implements Runnable {
 	

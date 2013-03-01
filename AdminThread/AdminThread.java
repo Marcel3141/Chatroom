@@ -10,10 +10,10 @@ import Admin.AdminConstants;
 import Server.*;
 import Verschluesselung.RSA;
 import Configuration.JAR_Configuration;
+import Configuration.Configuration;
 
 /**
  * @author Marcel Kramer
- * @serial 0.1
  */
 public class AdminThread implements ChatListener, ServerListener, Runnable {
 	
@@ -24,6 +24,7 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 	
 	protected Server server;
 	protected String serverPw;
+	public String serverName;
 	protected int serverPort;
 	
 	protected int maxWaitTime;
@@ -37,32 +38,61 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 	public JAR_Configuration con;
 	
 	public AdminThread(String pw, int port) {
-		con = new JAR_Configuration("Server.ini", "=", "ConfigurationFiles");
+		con = new JAR_Configuration("Server.ini", "=");
 		
 		if (pw != null && pw != "")
 			this.pw = pw;
 		else {
-			this.pw = con.get("password");
+			this.pw = con.get("default_password", "1");
 		}
 		
 		if (port > 1023 && port < 65536)
 			this.PORT = port;
 		else {
-			this.PORT = con.getInt("port", 1024, 65535, 2001 );
+			this.PORT = con.getInt("default_port", 1024, 65535, 2001 );
 		}
 		
 		this.BIN_LENGTH = con.getInt("BIN_LENGTH", 100, 25000, 1024);
-		int randCount = con.getInt("RAND_COUNT", 2, 100 );
+		startup();
+		startChatProtokoll();
+	}
+	
+	public AdminThread(Configuration config) {
+		con = new JAR_Configuration("Server.ini", "=");
 		
+		pw = config.get("password", con.get("default_password", "1"));
+		
+		PORT = config.getInt("port", 1024, 65535, con.getInt("default_port", 1024, 65535, 2001 ));
+		con.change("default_port", PORT+"");
+		
+		BIN_LENGTH = con.getInt("BIN_LENGTH", 100, 25000, 1024);
+		
+		startup();
+		serverOnline = config.getBool("server_online", false);
+		if (serverOnline) {
+			try {
+				String name = config.get("server_name", "Server");;
+				int port = con.getInt("server_port");
+				String pw = config.get("server_password", "");
+				startServer(name, port, pw);
+			}
+			catch (IOException e) {
+				
+			}
+		}
+		startChatProtokoll();
+		
+	}
+	
+	protected void startup() {
 		maxWaitTime = con.getInt("ADMIN_TIMEOUT", 5, 90, 15 );
 		
+		int randCount = con.getInt("RAND_COUNT", 2, 100 );
 		cP = new ChatProtokoll(this, randCount, "AdminThread");
 		
 		online = true;
 		adminOnline = false;
 		serverOnline = false;
-		
-		startChatProtokoll();
 	}
 	
 	public void connected(ChatProtokoll cP) {}
@@ -113,6 +143,10 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 					int port = Integer.parseInt(param[1]);
 					startServer(param[0], port, param[2]);
 				}
+				catch (IOException e) {
+					cP.send(AdminConstants.ERROR + AdminConstants.E_PORT_IN_USE);
+					cP.send(AdminConstants.SERVER_IS_OFF);
+				}
 				catch (Exception e) {
 					cP.send(AdminConstants.ERROR + AdminConstants.E_BAD_PARAMETER);
 					cP.send(AdminConstants.SERVER_IS_OFF);
@@ -129,7 +163,6 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 			updateUser();
 		}
 		else if (msg.startsWith(AdminConstants.KILL)) { 
-			//TODO: propper ip locking
 			if (serverOnline) {
 				msg = msg.substring(AdminConstants.KILL.length(), msg.length()-1);
 				server.lockIP(msg.split(AdminConstants.TRENNZEICHEN)[0]);
@@ -137,29 +170,30 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 		}
 	}
 	
-	protected void startServer(String name, int port, String pw) {
+	protected void startServer(String name, int port, String pw) throws IOException {
     	if (pw != null && pw != "" && pw != null && pw != "" && port >= 1024 && port <=65536) {	
 			if (port == PORT) {
-				cP.send(AdminConstants.ERROR + AdminConstants.E_PORT_IN_USE);
-				cP.send(AdminConstants.SERVER_IS_OFF);
-				return;
+				throw new IOException();
 			}
-			try {
-				ServerSocket serSock = new ServerSocket(port);
-				serSock.close();
-			}
-			catch (IOException e) {
-				cP.send(AdminConstants.ERROR + AdminConstants.E_PORT_IN_USE);
-				cP.send(AdminConstants.SERVER_IS_OFF);
-				return;
-			}
+			ServerSocket serSock = new ServerSocket(port);
+			serSock.close();
+			
+			serverPw = pw;
+			serverName = name;
+			serverPort = port;
+			
 			server = new Server(pw, port, this, name);
+			
 	    	serverOnline = true;
-			cP.send(AdminConstants.SERVER_IS_ON + pw + AdminConstants.TRENNZEICHEN + port +")");
+			
+			if (adminOnline)
+				cP.send(AdminConstants.SERVER_IS_ON + pw + AdminConstants.TRENNZEICHEN + port +")");
     	}
 		else {
-			cP.send(AdminConstants.ERROR + AdminConstants.E_BAD_PARAMETER);
-			cP.send(AdminConstants.SERVER_IS_OFF);
+			if (adminOnline) {
+				cP.send(AdminConstants.ERROR + AdminConstants.E_BAD_PARAMETER);
+				cP.send(AdminConstants.SERVER_IS_OFF);
+			}
 		}
     }
 	
@@ -191,7 +225,32 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 	}
 	
 	public void handleError(Exception e) {
-		
+		e.printStackTrace();
+	}
+	
+	public void goOffline() {
+		online = false;
+		if (!adminOnline) {
+			cP.abortConnecting();
+			cP.disconnect();
+		}
+		else {
+			cP.send(AdminConstants.SERVERUPDATE);
+		}
+		server.goOffline();
+		while (! cP.isSocketFree()) {
+			try {
+				Thread.sleep(1000);
+			}
+			catch (InterruptedException e) {}
+		}
+	}
+	
+	public void shutdown() {
+		if (adminOnline) {
+			cP.disconnect();
+		}
+		server.shutdown(ChatConstants.SERVERUPDATE);
 	}
 	
 	public void run() {
@@ -223,4 +282,16 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 		}
 	}
 
+	public Configuration getConfiguration() {
+		con.save();
+		Configuration config = new Configuration();
+		config.add("password", pw);
+		config.add("server_pw", serverPw);
+		config.add("port", PORT+"");
+		config.add("server_port", serverPort+"");
+		config.add("server_online", (serverOnline ? "true" : "false"));
+		config.add("server_name", serverName);
+		return config;
+	}
+	
 }
