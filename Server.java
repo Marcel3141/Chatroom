@@ -1,9 +1,16 @@
 import AdminThread.AdminThread;
 import Configuration.Configuration;
 
-public class Server extends StartClass{
+/**
+ * @author Marcel Kramer
+ */
+public class Server implements StartClass {
 	
 	protected AdminThread AT;
+	
+	public Server() {
+		AT = null;
+	}
 	
 	public Server(String pw, int port) {
 		AT = new AdminThread(pw, port);
@@ -13,11 +20,11 @@ public class Server extends StartClass{
 		AT = new AdminThread(con);
 	}
 	
-	public static StartClass start(String pw, int port) { 
+	public StartClass start(String pw, int port) { 
 		return new Server(pw, port);
 	}
 	
-	public static StartClass start(Configuration con) {
+	public StartClass start(Configuration con) {
 		return new Server(con);
 	}
 	

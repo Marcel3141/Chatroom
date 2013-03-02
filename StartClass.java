@@ -1,21 +1,14 @@
 import Configuration.Configuration;
 
-public class StartClass {
+/**
+ * @author Marcel Kramer
+ */
+public interface StartClass {
 	
-	public static StartClass start(String pw) { 
-		return new StartClass();
-	}
-	
-	public static StartClass start(Configuration con) {
-		return new StartClass();
-	}
-	
-	public Configuration getConfig() {
-		return new Configuration();
-	}
-	
-	public void pause() {}
-	
-	public void stop() {}
+	public StartClass start(String pw, int port);
+	public StartClass start(Configuration con);
+	public Configuration getConfig();
+	public void pause();
+	public void stop();
 	
 }

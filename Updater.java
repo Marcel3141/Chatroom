@@ -14,6 +14,9 @@ import java.util.Vector;
 import Configuration.ReadWriteFile;
 import Configuration.Configuration;
 
+/**
+ * @author Marcel Kramer
+ */
 public class Updater implements Runnable {
 	
 	protected int id;
@@ -26,7 +29,7 @@ public class Updater implements Runnable {
 	protected StartClass newServerClass;
 	protected Configuration serverCon;
 	
-	public Updater(String pw) {
+	public Updater(String pw, int port) {
 		id = -1;
 		lastId = -1;
 		online = false;
@@ -37,20 +40,18 @@ public class Updater implements Runnable {
 		
 		int f = tryGetUpdate();
 		while (f == -1) {
-			pl("Error -1 pos 1");
 			try {
-				Thread.sleep(10000);//3600000);
+				Thread.sleep(3600000);
 			}
 			catch(Exception e) {}
 			f = tryGetUpdate();
 		}
-		pl("downloaded");
 		calculateNextCheckTime();
 		
 		serverClass = newServerClass;
 		newServerClass = null;
-		serverClass.start(pw);
-		
+		serverClass = serverClass.start(pw, port);
+		pl("AT started");
 		serverCon = serverClass.getConfig();
 		
 		new Thread(this).start();
@@ -58,17 +59,21 @@ public class Updater implements Runnable {
 	
 	public void run() {
 		while (true) {
-			int time = Calendar.getInstance().compareTo(nextCheckTime);
+			Calendar now = Calendar.getInstance();
+			int time = (int) (nextCheckTime.getTimeInMillis() - now.getTimeInMillis());
 			if (time <= 0) {
 				int retVal = tryGetUpdate();
 				if (retVal == 0) {
 					startNewServer();
-					calculateNextCheckTime(15);//();
+					calculateNextCheckTime();
 				}
 				else if (retVal == -1) {
-					pl("Error -1");
 					calculateNextCheckTime(5);
 					continue;
+				}
+				else {
+					pl("no update avalable");
+					calculateNextCheckTime();
 				}
 			}
 			else {
@@ -84,15 +89,17 @@ public class Updater implements Runnable {
 	public void startNewServer() {
 		serverCon = serverClass.getConfig();
 		serverClass.pause();
-		newServerClass.start(serverCon.clone());
+		newServerClass = newServerClass.start(serverCon.clone());
 		serverClass.stop();
 		serverClass = newServerClass;
 		newServerClass = null;
+		pl("update completed");
 	}
 	
 	public void calculateNextCheckTime(int minutes) {
 		nextCheckTime = Calendar.getInstance();
 		nextCheckTime.add(Calendar.MINUTE, minutes);
+		pl("next checktime: " + calendarToString(nextCheckTime));
 	}
 	
 	public void calculateNextCheckTime() {
@@ -101,10 +108,11 @@ public class Updater implements Runnable {
 			nextCheckTime.add(Calendar.DAY_OF_YEAR, 1);
 		nextCheckTime.set(Calendar.HOUR_OF_DAY, 4);
 		nextCheckTime.set(Calendar.MINUTE, 0);
+		pl("next checktime: " + calendarToString(nextCheckTime));
 	}
 	
 	public static void main(String[] args) {
-		new Updater("1");
+		new Updater("1", 2001);
 	}
 	
 	public int tryGetUpdate() {
@@ -141,7 +149,8 @@ public class Updater implements Runnable {
 					return 0;
 				}
 				else if(val == -1) {
-					//errorIds.add(id);
+					errorIds.add(id);
+					pl("serverversion " + id + " is not working");
 					return -1;
 				}
 				else {
@@ -177,6 +186,7 @@ public class Updater implements Runnable {
 			is.close();
 		}
 		catch(Exception e) {
+			pl("failed to recive new id (probably no internet connection)");
 			return -1;
 		}
 		int id = -1;
@@ -184,17 +194,17 @@ public class Updater implements Runnable {
 			id = Integer.parseInt(s);
 		}
 		catch(Exception e) {}
+		pl((id == -1 ? "recive id is not an integer" : "new id recived: id = " + id));
 		return id;
 	}
 	
 	public int downloadFile() {
-		Class<? extends StartClass> strtClss;
+		File file;
 		try {
-			final String name = "Server";
-			final URL url = new URL("http://dl.dropbox.com/u/89839665/Chatroom/"+ name +".jar");
+			final URL url = new URL("http://dl.dropbox.com/u/89839665/Chatroom/Server.jar");
 			final URLConnection conn = url.openConnection();
 			final InputStream is = new BufferedInputStream(conn.getInputStream());
-			final OutputStream os = new BufferedOutputStream(new FileOutputStream(name +".jar"));
+			final OutputStream os = new BufferedOutputStream(new FileOutputStream("Server.jar"));
 			byte[] chunk = new byte[1024];
 			int chunkSize;
 			while ((chunkSize = is.read(chunk)) != -1) {
@@ -202,33 +212,60 @@ public class Updater implements Runnable {
 			}
 			os.close();
 			is.close();
-			File file  = ReadWriteFile.getFileInParentPath(name +".jar");
-			URL url1 = file.toURI().toURL();
-			ClassLoader loader = URLClassLoader.newInstance(new URL[] { url1 });
-			Class<?> clazz = Class.forName(name, true, loader);
-			strtClss = clazz.asSubclass(StartClass.class);
+			file = ReadWriteFile.getFileInParentPath("Server.jar");
 		}
 		catch(Exception e) {
+			pl("failed to get new jar-file (probably no internet connection)");
 			return -2;
 		}
 		catch(Throwable e) {
-			pl("XD.XD.XD.XD");
-			e.printStackTrace();
-			//System.exit(1);
+			pl("failed to get new jar-file");
+			pe(e);
 			return -2;
 		}
 		try {
+			URL url1 = file.toURI().toURL();
+			ClassLoader loader = URLClassLoader.newInstance(new URL[] { url1 });
+			Class<?> clazz = Class.forName("Server", true, loader);
+			Class<? extends StartClass> strtClss = clazz.asSubclass(StartClass.class);
 			newServerClass = strtClss.newInstance();
+			pl("new jar-file downloaded");
 			return 0;
 		}
 		catch(Exception e) {
-			e.printStackTrace();
+			pl("failed to create new Instance");
+			pe(e);
 			return -1;
+		}
+		catch(Throwable e) {
+			pl("failed to create new Instance");
+			pe(e);
+			return -2;
 		}
 	}
 	
 	public void pl(String s) {
-		System.out.println(s);
+		System.out.println( calendarToString(Calendar.getInstance()) + " Updater: " + s);
+	}
+	
+	public String calendarToString(Calendar c) {
+		int t = c.get(Calendar.DAY_OF_MONTH);
+		String date = (t < 10 ? "0" + t : "" + t) + ".";
+		t = c.get(Calendar.MONTH) + 1;
+		date += (t < 10 ? "0" + t : "" + t) + ".";
+		t = c.get(Calendar.YEAR);
+		date += t + " ";
+		t = c.get(Calendar.HOUR_OF_DAY);
+		date += (t < 10 ? "0" + t : "" + t) + ":";
+		t = c.get(Calendar.MINUTE);
+		date += (t < 10 ? "0" + t : "" + t) + ":";
+		t = c.get(Calendar.SECOND);
+		date += (t < 10 ? "0" + t : "" + t);
+		return date;
+	}
+	
+	public void pe(Throwable e) {
+		e.printStackTrace();
 	}
 	
 }
