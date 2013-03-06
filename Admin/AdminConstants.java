@@ -6,6 +6,8 @@ public class AdminConstants  {
 	public static final String DISCONNECT = "DISCONNECT()";
 	public static final String CONNECTED = "LOGIN_ACCEPTED";
 	
+	public static final String SERVERUPDATE = "SERVERUPDATE";
+	
 	//Admin-Server Befehle
 	public static final String TEST = "TEST()";
 	public static final String RESPONSE = "RESPONSE()";
