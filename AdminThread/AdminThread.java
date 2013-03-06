@@ -2,7 +2,10 @@ package AdminThread;
 
 import java.math.BigInteger;
 import java.util.Vector;
+import java.util.Calendar;
 import java.io.IOException;
+import java.io.File;
+import java.io.RandomAccessFile;
 import java.net.ServerSocket;
 
 import ChatProtokoll.*;
@@ -11,6 +14,7 @@ import Server.*;
 import Verschluesselung.RSA;
 import Configuration.JAR_Configuration;
 import Configuration.Configuration;
+import Configuration.ReadWriteFile;
 
 /**
  * @author Marcel Kramer
@@ -37,7 +41,11 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 	protected ChatProtokoll cP;
 	public JAR_Configuration con;
 	
-	public AdminThread(String pw, int port) {
+	public final boolean VERBOSE;
+	
+	public AdminThread(String pw, int port, boolean verbose) {
+		this.VERBOSE = verbose;
+		
 		con = new JAR_Configuration("Server.ini", "=");
 		
 		if (pw != null && pw != "")
@@ -55,9 +63,12 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 		this.BIN_LENGTH = con.getInt("BIN_LENGTH", 100, 25000, 1024);
 		startup();
 		startChatProtokoll();
+		pl("AT started");
 	}
 	
-	public AdminThread(Configuration config) {
+	public AdminThread(Configuration config, boolean verbose) {
+		this.VERBOSE = verbose;
+		
 		con = new JAR_Configuration("Server.ini", "=");
 		
 		pw = config.get("password", con.get("default_password", "1"));
@@ -81,7 +92,7 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 			}
 		}
 		startChatProtokoll();
-		
+		pl("AT started");
 	}
 	
 	protected void startup() {
@@ -99,6 +110,7 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 	
 	public void logedIn(ChatProtokoll cP) {
 		adminOnline=true;
+		pl("Admin logged in");
 		if (serverOnline) {
 			cP.send(AdminConstants.SERVER_IS_ON + server.PORT + AdminConstants.TRENNZEICHEN + server.LOG_IN_PW + ")");
 		}
@@ -108,22 +120,27 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 		new Thread(this).start();
 	}
 		
-	public void disconnected(ChatProtokoll cP) {	
+	public void disconnected(ChatProtokoll cP) {
+		pl("Admin logged out");
 		if (online)
 			startChatProtokoll();
 	}
 	
 	public void failedToConnect(Exception e, ChatProtokoll cP) {
+		pl("Admin failed to connect");
+		pe(e);
 		if (online)
 			startChatProtokoll();
 	}
 	
 	public void wrongPassword(ChatProtokoll cP) {
+		pl(cP.getIP()+" entered wrong Password");
 		if (online)
 			startChatProtokoll();
 	}
 	
 	public void startChatProtokoll() {
+		adminOnline = false;
 		if (!cP.areKeysReady()) {
 			BigInteger[] keys = RSA.erstellen(BIN_LENGTH);
 			cP.setKeys(keys[0], keys[1], keys[2]);
@@ -225,7 +242,7 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 	}
 	
 	public void handleError(Exception e) {
-		e.printStackTrace();
+		pe(e);
 	}
 	
 	public void goOffline() {
@@ -251,6 +268,7 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 			cP.disconnect();
 		}
 		server.shutdown(ChatConstants.SERVERUPDATE);
+		pl("AT has been shutdown");
 	}
 	
 	public void run() {
@@ -292,6 +310,57 @@ public class AdminThread implements ChatListener, ServerListener, Runnable {
 		config.add("server_online", (serverOnline ? "true" : "false"));
 		config.add("server_name", serverName);
 		return config;
+	}
+	
+	public void pl(String s) {
+		pl(s, "AdminThread");
+	}
+	
+	public void pl(String s, String name) {
+		if (VERBOSE)
+			appentToDebugfile( calendarToString(Calendar.getInstance()) + " " + name + ": " + s);
+	}
+	
+	public String calendarToString(Calendar c) {
+		int t = c.get(Calendar.DAY_OF_MONTH);
+		String date = (t < 10 ? "0" + t : "" + t) + ".";
+		t = c.get(Calendar.MONTH) + 1;
+		date += (t < 10 ? "0" + t : "" + t) + ".";
+		t = c.get(Calendar.YEAR);
+		date += t + " ";
+		t = c.get(Calendar.HOUR_OF_DAY);
+		date += (t < 10 ? "0" + t : "" + t) + ":";
+		t = c.get(Calendar.MINUTE);
+		date += (t < 10 ? "0" + t : "" + t) + ":";
+		t = c.get(Calendar.SECOND);
+		date += (t < 10 ? "0" + t : "" + t);
+		return date;
+	}
+	
+	public void pe(Throwable e) {
+		if (VERBOSE) {
+			StackTraceElement[] stackTrace = e.getStackTrace();
+			pl("Error dedected");
+			appentToDebugfile("-");
+			appentToDebugfile(e.toString());
+			for (StackTraceElement ste: stackTrace)
+				appentToDebugfile(ste.toString());
+			appentToDebugfile("-");
+		}
+	}
+	
+	public void appentToDebugfile(String msg) {
+		msg = msg + "\n";
+		try {
+			File f = ReadWriteFile.getFileInParentPath("debug.txt");
+			RandomAccessFile raf = new RandomAccessFile(f, "rw");
+			raf.seek(raf.length());
+			raf.write(msg.getBytes());
+			raf.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 }

@@ -12,20 +12,20 @@ public class Server implements StartClass {
 		AT = null;
 	}
 	
-	public Server(String pw, int port) {
-		AT = new AdminThread(pw, port);
+	public Server(String pw, int port, boolean verbose) {
+		AT = new AdminThread(pw, port, verbose);
 	}
 	
-	public Server(Configuration con) {
-		AT = new AdminThread(con);
+	public Server(Configuration con, boolean verbose) {
+		AT = new AdminThread(con, verbose);
 	}
 	
-	public StartClass start(String pw, int port) { 
-		return new Server(pw, port);
+	public StartClass start(String pw, int port, boolean verbose) { 
+		return new Server(pw, port, verbose);
 	}
 	
-	public StartClass start(Configuration con) {
-		return new Server(con);
+	public StartClass start(Configuration con, boolean verbose) {
+		return new Server(con, verbose);
 	}
 	
 	public Configuration getConfig() {

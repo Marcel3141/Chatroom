@@ -2,7 +2,11 @@
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.net.URLConnection;
+import java.net.ServerSocket;
+import java.io.IOException;
+import java.io.Console;
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -29,7 +33,15 @@ public class Updater implements Runnable {
 	protected StartClass newServerClass;
 	protected Configuration serverCon;
 	
-	public Updater(String pw, int port) {
+	public final boolean VERBOSE;
+	
+	public Updater(String pw, int port, boolean verbose) {
+		this.VERBOSE = verbose;
+		if (VERBOSE) {
+			appentToDebugfile("===================================");
+			appentToDebugfile(calendarToString(Calendar.getInstance()) + " Updater started");
+			appentToDebugfile("===================================");
+		}
 		id = -1;
 		lastId = -1;
 		online = false;
@@ -38,21 +50,34 @@ public class Updater implements Runnable {
 		nextCheckTime = Calendar.getInstance();
 		errorIds = new Vector<Integer>();
 		
-		int f = tryGetUpdate();
-		while (f == -1) {
-			try {
-				Thread.sleep(3600000);
+		while (true) {
+			int f = tryGetUpdate();
+			while (f == -1) {
+				try {
+					Thread.sleep(3600000);
+				}
+				catch(Exception e) {}
+				f = tryGetUpdate();
 			}
-			catch(Exception e) {}
-			f = tryGetUpdate();
+			calculateNextCheckTime();
+			
+			serverClass = newServerClass;
+			newServerClass = null;
+			try {
+				serverClass = serverClass.start(pw, port, VERBOSE);
+			}
+			catch(Throwable e) {
+				pe(e);
+				try {
+					Thread.sleep(3600000);
+				}
+				catch(Exception e1) {}
+				continue;
+			}
+			serverCon = serverClass.getConfig();
+			break;
 		}
-		calculateNextCheckTime();
-		
-		serverClass = newServerClass;
-		newServerClass = null;
-		serverClass = serverClass.start(pw, port);
 		pl("AT started");
-		serverCon = serverClass.getConfig();
 		
 		new Thread(this).start();
 	}
@@ -89,7 +114,7 @@ public class Updater implements Runnable {
 	public void startNewServer() {
 		serverCon = serverClass.getConfig();
 		serverClass.pause();
-		newServerClass = newServerClass.start(serverCon.clone());
+		newServerClass = newServerClass.start(serverCon.clone(), VERBOSE);
 		serverClass.stop();
 		serverClass = newServerClass;
 		newServerClass = null;
@@ -112,7 +137,49 @@ public class Updater implements Runnable {
 	}
 	
 	public static void main(String[] args) {
-		new Updater("1", 2001);
+		
+		boolean verbose = args != null && args.length > 0 && args[0].equals("v");
+		
+		Console cn = System.console();
+		
+		System.out.println("");
+		System.out.println("Bitte Passwort mit mindestens 4 Zeichen eingeben");
+		
+		char[] c_pw = new char[1];
+		while (true) {
+			c_pw = cn.readPassword("[%s]", "Password:");
+			if (c_pw.length >= 4)
+				break;
+		}
+		String pw = "";
+		for(char c: c_pw)
+			pw += c + "";
+		int port = 0;
+		System.out.println("");
+		System.out.println("Bitte AT port eingeben (1024-65536)");
+		while (true) {
+			try {
+				port = Integer.parseInt(cn.readLine("[%s]", "Port:"));
+			}
+			catch(NumberFormatException e) {
+				continue;
+			}
+			if (port >= 1024 && port <=65536 ) {
+				try {
+					ServerSocket serSock = new ServerSocket(port);
+					serSock.close();
+				}
+				catch(IOException e) {
+					System.out.println("Port bereits belegt");
+					continue;
+				}
+				break;
+			}
+		}
+		System.out.println("");
+		System.out.println((verbose ? "Debuginfos werden in die Datei debug.txt umgeleitet" : "verbose deaktiviert"));
+		System.out.println("Updater ist gestartet");
+		new Updater(pw, port, verbose);
 	}
 	
 	public int tryGetUpdate() {
@@ -245,7 +312,8 @@ public class Updater implements Runnable {
 	}
 	
 	public void pl(String s) {
-		System.out.println( calendarToString(Calendar.getInstance()) + " Updater: " + s);
+		if (VERBOSE)
+			appentToDebugfile( calendarToString(Calendar.getInstance()) + " Updater: " + s);
 	}
 	
 	public String calendarToString(Calendar c) {
@@ -265,7 +333,29 @@ public class Updater implements Runnable {
 	}
 	
 	public void pe(Throwable e) {
-		e.printStackTrace();
+		if (VERBOSE) {
+			StackTraceElement[] stackTrace = e.getStackTrace();
+			pl("Error dedected");
+			appentToDebugfile("-");
+			appentToDebugfile(e.toString());
+			for (StackTraceElement ste: stackTrace)
+				appentToDebugfile(ste.toString());
+			appentToDebugfile("-");
+		}
+	}
+	
+	public void appentToDebugfile(String msg) {
+		msg = msg + "\n";
+		try {
+			File f = ReadWriteFile.getFileInParentPath("debug.txt");
+			RandomAccessFile raf = new RandomAccessFile(f, "rw");
+			raf.seek(raf.length());
+			raf.write(msg.getBytes());
+			raf.close();
+		}
+		catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 }

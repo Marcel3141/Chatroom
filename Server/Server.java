@@ -65,7 +65,7 @@ public class Server implements ChatListener, Runnable{
 		clients = new Vector<ChatProtokoll>();
 		
 		new Thread(this).start();
-		System.out.println("Server started");
+		sL.pl("Server started", "Server");
 	}
 	
 	protected void startChatProtokoll() {
@@ -115,7 +115,7 @@ public class Server implements ChatListener, Runnable{
 	public void disconnected(ChatProtokoll cP) {
 		delete(cP);
 		if(online) {
-			sendOther(cP.getName() + "hat den Chatroom verlassen", NAME, cP);
+			sendOther(cP.getName() + " hat den Chatroom verlassen", NAME, cP);
 			sL.updateUser();
 		}
 	}
@@ -218,6 +218,7 @@ public class Server implements ChatListener, Runnable{
 			delete(cP);
 		}
 		clients = null;
+		sL.pl("Server has been shutdown", "Server");
 		sL = null;
 	}
 	
