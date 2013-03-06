@@ -6,8 +6,6 @@ public class AdminConstants  {
 	public static final String DISCONNECT = "DISCONNECT()";
 	public static final String CONNECTED = "LOGIN_ACCEPTED";
 	
-	public static final String SERVERUPDATE = "SERVERUPDATE";
-	
 	//Admin-Server Befehle
 	public static final String TEST = "TEST()";
 	public static final String RESPONSE = "RESPONSE()";
@@ -19,8 +17,6 @@ public class AdminConstants  {
 	public static final String SERVER_IS_OFF = "SERVER_IS_OFF()";
 	
 	public static final String KILL = "KILL(";
-	public static final String SEND_MSG_TO_USER = "SEND(";
-	
 	
 	public static final String UP_USER = "UPDATE_USER(";
 	public static final String UP_LOCKED_IP = "UPDATE_LOCKED_IP()";

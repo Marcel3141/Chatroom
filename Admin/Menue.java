@@ -56,7 +56,7 @@ public class Menue extends JFrame implements WindowListener {
 		setLocationRelativeTo(logIn);
 		setLayout(new BorderLayout(3, 3));
 		
-		add(buttonPanel, BorderLayout.NORTH);
+		add(buttonPanel, BorderLayout.LINE_START);
 		add(chatPanel, BorderLayout.CENTER);
 		add(JP_Additional, BorderLayout.LINE_END);
 		

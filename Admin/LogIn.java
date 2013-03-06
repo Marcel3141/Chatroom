@@ -198,12 +198,12 @@ public class LogIn extends JFrame implements ActionListener, WindowListener, Cha
 			finalize();
 		}
 		catch (Throwable e) {}
+		System.exit(0);
 	}
 	
 	protected void finalize() throws Throwable {
 		con.save();
 		super.finalize();
-		this.dispose();
 	}
 
 }

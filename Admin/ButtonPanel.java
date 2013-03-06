@@ -7,9 +7,8 @@ import java.math.BigInteger;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JMenuBar;
-import javax.swing.JMenu;
-import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JButton;
 
 import ChatProtokoll.ChatProtokoll;
 import ChatProtokoll.ChatListener;
@@ -20,21 +19,18 @@ import Verschluesselung.RSA;
  * @author Marcel Kramer
  * @serial 0.1
  */
-public class ButtonPanel extends JMenuBar implements ActionListener, ChatListener {
+public class ButtonPanel extends JPanel implements ActionListener, ChatListener {
 
-	protected static final String SERVER_ON = "Server starten";
-	protected static final String SERVER_OFF = "Server stoppen";
-	protected static final String USER_ON = "Userverwaltung aktivieren";
-	protected static final String USER_OFF = "Userverwaltung deaktivieren";
-	protected static final String CHAT_ON = "Chat starten";
-	protected static final String CHAT_OFF = "Chat beenden";
+	protected static final String SERVER_ON = "<html>Server starten";
+	protected static final String SERVER_OFF = "<html>Server stoppen";
+	protected static final String USER_ON = "<html>Userverwaltung<br />aktivieren";
+	protected static final String USER_OFF = "<html>Userverwaltung<br />deaktivieren";
+	protected static final String CHAT_ON = "<html>Chat starten";
+	protected static final String CHAT_OFF = "<html>Chat beenden";
 	
-	protected JMenuItem JB_Server = new JMenuItem(SERVER_ON);
-	protected JMenuItem JB_User = new JMenuItem(USER_ON);
-	protected JMenuItem JB_Chat = new JMenuItem(CHAT_ON);
-	
-	protected JMenu JM_Server = new JMenu("Server");
-	protected JMenu JM_View = new JMenu("Ansicht");
+	protected JButton JB_Server = new JButton(SERVER_ON);
+	protected JButton JB_User = new JButton(USER_ON);
+	protected JButton JB_Chat = new JButton(CHAT_ON);
 	
 	protected boolean serverOn;
 	
@@ -70,16 +66,26 @@ public class ButtonPanel extends JMenuBar implements ActionListener, ChatListene
 		JB_User.addActionListener(this);
 		JB_Chat.addActionListener(this);
 		
-		JM_Server.add(JB_Server);
-		JM_View.add(JB_Chat);
-		JM_View.add(JB_User);
+		JPanel JP_buttons = new JPanel();
+		JP_buttons.setLayout(new BoxLayout(JP_buttons, BoxLayout.Y_AXIS));
+		JP_buttons.add(createButtonPanel(JB_Server, hight));
+		JP_buttons.add(createButtonPanel(JB_User, hight2));
+		JP_buttons.add(createButtonPanel(JB_Chat, hight));
 		
-		add(JM_Server);
-		add(JM_View);
+		add(JP_buttons);
 		
 		new Thread(schluessel_generieren).start();
 		cP = new ChatProtokoll(this, menue.logIn.RAND_COUNT);
 		menue.chatPanel.setChatProtokoll(cP);
+	}
+	
+	protected JPanel createButtonPanel(Component comp, int hight) {
+		JPanel tmp = new JPanel();
+		tmp.setLayout(new BoxLayout(tmp, BoxLayout.X_AXIS));
+		tmp.add(Box.createRigidArea(new Dimension(3, hight)));
+		tmp.add(comp);
+		tmp.add(Box.createRigidArea(new Dimension(3, hight)));
+		return tmp;
 	}
 	
 	public void setServerOn(boolean b) {
@@ -133,11 +139,6 @@ public class ButtonPanel extends JMenuBar implements ActionListener, ChatListene
 	public void connected(ChatProtokoll cP) {}
 	
 	public void logedIn(ChatProtokoll cP) {
-		if (serverOn) {
-			JB_Chat.setActionCommand(CHAT_OFF);
-			JB_Chat.setText(CHAT_OFF);
-			JB_Chat.setEnabled(true);
-		}
 		menue.chatPanel.setConnected(true);
 		menue.chatPanel.setEnabled(true);
 	}
@@ -147,11 +148,6 @@ public class ButtonPanel extends JMenuBar implements ActionListener, ChatListene
 	}
 	
 	public void disconnected(ChatProtokoll cP) {
-		if (serverOn) {
-			JB_Chat.setActionCommand(CHAT_OFF);
-			JB_Chat.setText(CHAT_OFF);
-			JB_Chat.setEnabled(true);
-		}
 		checkKeyGeneration();
 		menue.chatPanel.setConnected(false);
 	}
